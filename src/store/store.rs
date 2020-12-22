@@ -1,8 +1,9 @@
+use ::std::vec::Vec;
 use std::collections::HashMap;
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
-enum Error {
+pub enum Error {
     NotFound,
 }
 
@@ -10,10 +11,10 @@ pub struct Store {
     data: RwLock<HashMap<String, Info>>,
 }
 
-pub struct Info{
+pub struct Info {
     val: String,
     now: Instant,
-    elapse: u64
+    elapse: u64,
 }
 
 impl Store {
@@ -22,52 +23,63 @@ impl Store {
             data: RwLock::new(HashMap::new()),
         }
     }
-    pub fn insert(&mut self, key: String, val: String, expire: u64) {
+    pub fn insert(&self, key: String, val: String, expire: u64) {
         let mut map = self.data.write().unwrap();
-        let data = Info{
+        let data = Info {
             val: val,
             now: Instant::now(),
-            elapse: expire
+            elapse: expire,
         };
         map.insert(key, data);
     }
-    pub fn delete(&mut self, key: String) -> Result<String, Error> {
+    pub fn delete(&self, key: &str) -> Result<String, Error> {
         let mut map = self.data.write().unwrap();
-        match map.remove(&key) {
+        match map.remove(key) {
             Some(val) => Ok(val.val[..].to_string()),
             None => Err(Error::NotFound),
         }
     }
-    pub fn get(&mut self, key: String) -> Result<String, Error> {
+    pub fn get(&self, key: String) -> Result<String, Error> {
         let map = self.data.read().unwrap();
         match map.get(&key) {
             Some(val) => Ok(val.val[..].to_string()),
             None => Err(Error::NotFound),
         }
     }
-    pub fn update(&mut self, key: String, val: String) -> Result<(), Error> {
+    pub fn update(&self, key: String, val: String) -> Result<(), Error> {
         let mut map = self.data.write().unwrap();
-        match map.get(&key){
+        match map.get(&key) {
             Some(_val) => {
                 let expiry = _val.elapse;
                 let instant = _val.now;
-                let data = Info{
-                    val: val,
+                let data = Info {
+                    val: String::from(val),
                     now: instant,
-                    elapse: expiry
+                    elapse: expiry,
                 };
                 map.insert(key, data);
                 Ok(())
-            },
-            None => {Err(Error::NotFound)}
-        }
-    }
-    pub fn get_rem_time(&self, key: String)-> Result<u64, Error>{
-        let map = self.data.read().unwrap();
-        match map.get(&key) {
-            Some(val) => Ok(val.now.elapsed().as_secs()-val.elapse),
+            }
             None => Err(Error::NotFound),
         }
+    }
+    pub fn get_rem_time(&self, key: &str) -> Result<bool, Error> {
+        let map = self.data.read().unwrap();
+        match map.get(key) {
+            Some(val) => {
+                eprintln!("{}", val.now.elapsed().as_secs());
+                Ok(val.now.elapsed().as_secs() >= val.elapse)
+            }
+            None => Err(Error::NotFound),
+        }
+    }
+    pub fn get_keys(&self) -> Vec<String> {
+        let map = self.data.read().unwrap();
+        let mut ans: Vec<String> = vec![];
+        for key in map.keys() {
+            ans.push(String::from(key));
+        }
+        ans
     }
 }
 
