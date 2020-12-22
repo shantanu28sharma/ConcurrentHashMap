@@ -6,7 +6,7 @@ use std::time::Duration;
 pub struct Manager {}
 
 impl Manager {
-    fn run(store: Arc<Store>) {
+    pub fn run(store: Arc<Store>) {
         thread::spawn(move || {
             loop {
                 thread::sleep(Duration::from_secs(1));
