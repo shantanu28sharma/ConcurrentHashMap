@@ -1,7 +1,7 @@
 use ::std::vec::Vec;
 use std::collections::HashMap;
 use std::sync::RwLock;
-use std::time::{Duration, Instant};
+use std::time::{Instant};
 
 pub enum Error {
     NotFound,
@@ -23,7 +23,7 @@ impl Store {
             data: RwLock::new(HashMap::new()),
         }
     }
-    pub fn insert(&self, key: String, val: String, expire: u64) {
+    pub fn insert(&self, key: String, val: String, expire: u64) -> Result<(), Error> {
         let mut map = self.data.write().unwrap();
         let data = Info {
             val: val,
@@ -31,6 +31,7 @@ impl Store {
             elapse: expire,
         };
         map.insert(key, data);
+        Ok(())
     }
     pub fn delete(&self, key: &str) -> Result<String, Error> {
         let mut map = self.data.write().unwrap();
@@ -84,6 +85,8 @@ impl Store {
 }
 
 #[cfg(test)]
+
+#[allow(warnings)]
 mod tests {
     use super::*;
     #[test]
