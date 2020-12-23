@@ -10,23 +10,34 @@ pub struct Connector {}
 
 #[allow(warnings)]
 impl Connector {
-    fn run(store: Arc<store::store::Store>) {
+    pub fn run(store: Arc<store::store::Store>) {
         thread::spawn(move || {
-            let listener = TcpListener::bind("127.0.0.1:80").unwrap();
-            for stream in listener.incoming() {
-                let stream = stream.unwrap();
-                Self::handle_client(stream, store.clone());
+            let listener = TcpListener::bind("localhost:4444").unwrap();
+            eprintln!("Listening on port 44444");
+            for _stream in listener.incoming() {
+                let stream = _stream.unwrap();
+                eprintln!("Connection establshed");
+                let in_store = store.clone();
+                thread::spawn(move || Self::handle_client(stream, in_store));
             }
         });
     }
 
     fn handle_client(mut stream: TcpStream, store: Arc<store::store::Store>) {
         let mut buffer = [0; 1024];
-        stream.read(&mut buffer).unwrap();
-        let iter = String::from_utf8_lossy(&buffer[..]);
-        let response = Self::parse_string(iter, store);
-        stream.write(response.as_bytes());
-        stream.flush().unwrap();
+        while match stream.read(&mut buffer) {
+            Ok(size) => {
+                let iter = String::from_utf8_lossy(&buffer[..]);
+                let mut response = Self::parse_string(iter, store.clone());
+                response.push('\n');
+                stream.write(response.as_bytes()).unwrap();
+                true
+            }
+            Err(_) => {
+                eprintln!("Closing stream");
+                false
+            }
+        } {}
     }
 
     fn parse_string(req: Cow<str>, store: Arc<store::store::Store>) -> String {
@@ -139,7 +150,7 @@ mod tests {
         let response = Connector::parse_string(request, store);
         assert_eq!(response, String::from("Error: Malfromed Input"));
     }
-    
+
     #[test]
     fn parse_test_unknown_method() {
         let store = Arc::new(store::store::Store::new());
@@ -162,5 +173,13 @@ mod tests {
         let request = Cow::from("GET hello");
         let response = Connector::parse_string(request, store);
         assert_eq!(response, String::from("Error: Key does not exist"));
+    }
+
+    #[test]
+    fn empty_input() {
+        let store = Arc::new(store::store::Store::new());
+        let request = Cow::from("");
+        let response = Connector::parse_string(request, store);
+        assert_eq!(response, String::from("Error: Malfromed Input"));
     }
 }

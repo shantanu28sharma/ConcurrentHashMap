@@ -1,7 +1,7 @@
 use ::std::vec::Vec;
 use std::collections::HashMap;
 use std::sync::RwLock;
-use std::time::{Instant};
+use std::time::Instant;
 
 pub enum Error {
     NotFound,
@@ -67,10 +67,7 @@ impl Store {
     pub fn get_rem_time(&self, key: &str) -> Result<bool, Error> {
         let map = self.data.read().unwrap();
         match map.get(key) {
-            Some(val) => {
-                eprintln!("{}", val.now.elapsed().as_secs());
-                Ok(val.now.elapsed().as_secs() >= val.elapse)
-            }
+            Some(val) => Ok(val.now.elapsed().as_secs() >= val.elapse),
             None => Err(Error::NotFound),
         }
     }
@@ -85,7 +82,6 @@ impl Store {
 }
 
 #[cfg(test)]
-
 #[allow(warnings)]
 mod tests {
     use super::*;
